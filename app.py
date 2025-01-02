@@ -10,7 +10,8 @@ working_dir = os.getcwd()
 
 st.write("""
 # Feed Prediction App
-This app predicts the **EAF Feeds** type!
+**Desgin By heidar alavi @CMIC 2025**
+# This app predicts the **EAF Feeds** type!
 """)
 
 def coke1030_input_features(min_dict,max_dict,avg_dict):
@@ -86,7 +87,7 @@ def lime_input_features(min_dict,max_dict,avg_dict):
     return features
 
 #---------------load data-------------------
-df = pd.read_csv("all_data_with_labels.csv")
+df = pd.read_csv(f"{working_dir}/data/all_data_with_labels.csv")
 max_dict = df.max().round(2).to_dict()
 min_dict = df.min().round(2).to_dict()
 avg_dict = df.mean().round(2).to_dict()
@@ -98,7 +99,7 @@ st.sidebar.header('Input Coke Fine Parameters:')
 coke_fine_df = cokefine_input_features(min_dict=min_dict,max_dict=max_dict,avg_dict=avg_dict)
 st.sidebar.header('Input Dolomite Parameters:')
 dolo_df = dolo_input_features(min_dict=min_dict,max_dict=max_dict,avg_dict=avg_dict)
-st.sidebar.header('Input DRI Parameters:')
+st.sidebar.header('Input Cold DRI Parameters:')
 dri_df = dri_input_features(min_dict=min_dict,max_dict=max_dict,avg_dict=avg_dict)
 st.sidebar.header('Input Lime Parameters:')
 lime_df = lime_input_features(min_dict=min_dict,max_dict=max_dict,avg_dict=avg_dict)
@@ -109,7 +110,7 @@ prediction_df = pd.concat([coke_1030_df,coke_fine_df,dolo_df,dri_df,lime_df],axi
 st.write(prediction_df)
 
 #--------load trained model and predict-----------
-clf = pickle.load(open("all_feed_rfc_model.pkl", 'rb'))
+clf = pickle.load(open(f"{working_dir}/trained_models/all_feed_rfc_model.pkl", 'rb'))
 predict_label = clf.predict(prediction_df.values).tolist()[0]
 st.write(f"Predicted Label: {predict_label}")
 
@@ -118,9 +119,17 @@ mask = df.columns.str.contains('Coke1030|CokeFine|Dolomite|DRI|Lime')
 df = df[df.columns[~mask]]
 mask2 = df['Total_labels'] == predict_label
 df = df[mask2]
-max_b2 = df['b2 (Slag)'].max()
-mask3 = df['b2 (Slag)'] == max_b2
+mask3 = df['Slag_labels'] == 0
 df = df[mask3]
-mask4 = df.columns.str.contains('EAF|Heat|b2|Total_labels')
-df = df[df.columns[mask4]]
+max_b2 = df['b2 (Slag)'].max()
+mask4 = df['b2 (Slag)'].between(0.5*max_b2,max_b2)
+df = df[mask4]
+min_feo = df['feo (Slag)'].min()
+mask5 = df['feo (Slag)'].between(0.5*min_feo,min_feo)
+df = df[mask5]
+mask6 = df.columns.str.contains('EAF|Heat|feo|mgo|b2|Total_labels')
+df = df[df.columns[mask6]]
 st.write(df)
+isd_df = pd.read_csv(f"{working_dir}/opencv-images/1xy.csv")
+st.image(f"{working_dir}/opencv-images/isd-feo-mgo.jpg")
+#st.scatter_chart(data=isd_df[isd_df['label']==0],x='x',y='y',x_label='Feo',y_label='Mgo')
